@@ -1,0 +1,9 @@
+imutils
+numpy
+opencv-python
+torch
+Pillow
+scikit-learn
+progressbar2
+amcrest
+dlib

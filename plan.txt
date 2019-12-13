@@ -1,0 +1,86 @@
+================
+Preliminary Setup
+
+Open a terminal and clone the repository.
+
+git clone https://github.com/stevengriffin/facial-recognition.git
+cd facial-recognition
+
+# Assuming Ubuntu or Debian
+sudo apt-get install python3-pip cmake
+pip3 install --no-cache-dir -r requirements.txt
+
+================
+Camera Setup
+
+Power and connect the cameras with ethernet to the DGX station using POE injectors. 
+
+Find the IP address, port, username, and password of the cameras. Learn to connect to the cameras, change their pan and tilt, save snapshots, and record streams with a Python script by reading https://python-amcrest.readthedocs.io/.
+
+================
+Data Collection
+
+Build a dataset of images of yourselves. Take pictures of each person with a variety of angles and lighting conditions. You can use the Amcrest cameras or your cell phones. Organize it into a dataset with the following directory structure.
+
+unprocessed_dataset/
+    name1/
+        00000.jpg
+        00001.jpg
+        00002.jpg
+        00003.jpg
+        ...
+    name2/
+        00000.jpg
+        00001.jpg
+        00002.jpg
+        00003.jpg
+        ...
+    name3/
+        00000.jpg
+        00001.jpg
+        00002.jpg
+        00003.jpg
+        ...
+
+You can look at https://www.pyimagesearch.com/2018/06/11/how-to-build-a-custom-face-recognition-dataset/ for inspiration.
+
+================
+Pipeline explanation
+
+M1: face detector (pretrained neural network)
+
+M2: face embeddings generator (pretrained neural network)
+
+M3: face embeddings -> labels classifier (train yourself, many options: support vector machine, decision tree, k-nearest neighbors, neural network)
+
+# Generate face embeddings with OpenFace's neural network.
+python3 extract_embeddings.py
+# Train the model.
+python3 train_model.py
+# Test the model.
+python3 recognize_test.py
+# Run the pipeline on a live video feed and visualize results.
+# You have to code this, building on the previous interns' work.
+python3 face_detect.py
+
+Training Pipeline:
+For each image in the training dataset, detect face in image with M1 and get bounding box. Crop the image to the face, align it with dlib, and generate the face embeddings with M2. Add the face embedding to a list of vectors and the person's name to a list of labels. Fit a machine learning model to the face embeddings and labels.
+
+Testing Pipeline:
+For each image in the testing dataset, detect face(s) in image with M1 and get their bounding boxes. For each face, crop the image to the face, align it with dlib, generate the face embeddings with M2, and match the face embeddings to a person's name with M3. Output the name of the person detected in the image and the bounding boxes of their face. Compute how many of the faces were predicted correctly by comparing the outputs to the labels.
+
+Production Pipeline:
+When a new image arrives from the video cameras that might have a face, transfer it to the DGX and use M2 to find faces, if any exist, and if so, run M3 on the cropped image to recognize the names corresponding to the faces. Show a feed displaying the bounding boxes, predicted names, and confidences with each frame.
+
+The previous interns have implemented this with a cascade classifier. You'll need to switch this to the face detector neural network. You'll also have to load the face embeddings generator with PyTorch rather than OpenCV. Read the code in recognize_test.py to get an idea of what needs to be changed and rewrite face_detect.py.
+
+Once you have it working on your computers, clone the repository on the DGX and implement GPU acceleration of the face embeddings generator. It will be easiest to install CUDA-enabled PyTorch with conda rather than pip3. Install Miniconda (https://docs.conda.io/en/latest/miniconda.html) and then run:
+
+conda install pytorch torchvision cudatoolkit=10.0 -c pytorch
+
+To increase the fps, batching may be implemented, so that the models operate on a batch of images and the display is delayed a few frames. Supplying a machine learning model with a batch of inputs and receiving a batch of outputs tends to be faster than giving it one input at a time. Batching of M2 and M3 is shown in the function recognize_batch in recognize_test.py, but you should also implement batching of M1. One way to integrate this with the camera feed is using threads, asyncio, or multiprocessing. One thread would pull batch_size frames of the video feed into an array, operate the facial recognition on that, and push the elements of the resulting array of names, bounding boxes, confidences, and original images into a queue. A second thread would pull a result from the queue every frame_time seconds and display it as part of a video feed. An example of Python threading is shown in thread_example.py, and an example of Python multiprocessing is shown in mp_example.py.
+
+Updating Dataset:
+Each time a new person is added to the face recognition system, you need to run M1 and M2 on the new images then retrain M3.
+
+
