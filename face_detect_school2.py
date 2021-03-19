@@ -15,15 +15,16 @@ import time #
 from time import sleep #
 import os
 from datetime import datetime
+import sys
 
 ip = "192.168.8.9"
 port = "80"
 username = "admin"
 password = "internsarethebest1"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+sys.stdout = open('/home/pi/Desktop/facialrecog/facial-recog-school/out.txt', 'w')
 speed=1
-
+os.system("rm students.txt")
 #ser = serial.Serial('/dev/ttyACM0', 115200)
 names = []
 
@@ -113,16 +114,28 @@ def main():
 
         key = cv.waitKey(1) & 0xff 
         if key == ord('q'):
-             break
+             
+             sys.stdout.close()
+             os.system("uniq out.txt | sort >> students.txt")
+             os.system("rm out.txt")
+             os.system("sed -i -e 1,2d students.txt")
+             exit()
+             
         if key == ord('p'):
-            v = "/"
+           
+           v = "/"
             #ser.write(str.encode(out))
-            print(out)
-            now = datetime.now()
-            t = now.strftime("%H:%M:%S")
+           print(out)
+           
+           now = datetime.now()
+           t = now.strftime("%H:%M:%S")
            # ser.write(str.encode(v))
-            #ser.write(str.encode(t))
-            time.sleep(2)
+           #ser.write(str.encode(t))
+           print(v)
+           
+           print(t)
+           
+           time.sleep(2)
         detect_timer -= 1
 
     cv.destroyAllWindows()
