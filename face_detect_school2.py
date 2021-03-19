@@ -119,7 +119,7 @@ def main():
              os.system("uniq out.txt | sort >> students.txt")
              os.system("rm out.txt")
              os.system("sed -i -e 1,2d students.txt")
-             exit()
+             break
              
         if key == ord('p'):
            
